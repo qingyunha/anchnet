@@ -9,9 +9,10 @@ def get_ssh(request, clients={}):
                                       request.form['password'])
     if login_info[0] in clients:
         ssh = clients[login_info[0]]
-    else:
-        ssh = sshClient(login_info)
-        clients[login_info[0]] = ssh
+        if ssh._ssh.isalive():
+            return ssh
+    ssh = sshClient(login_info)
+    clients[login_info[0]] = ssh
     return ssh
 
 
@@ -28,8 +29,8 @@ def show_block():
 def block():
     ssh = get_ssh(request)
     ips = request.form['block_ips'].split()
-    ssh.switch('BLOCK', ips)
-    out = ssh.switch('ROUTE_TABLE') 
+    ssh.run('BLOCK', ips)
+    out = ssh.run('ROUTE_TABLE') 
     return '<pre>' + out + '<pre>' 
 
 
@@ -45,12 +46,12 @@ def unblock():
     ips = request.form['block_ips'].split()
     time = int(request.form['time'])
     if time:
-        ssh.switch('UNBLOCK', ips, time=time)
+        ssh.run('UNBLOCK', ips, time=time)
         return '%d later' % time
     else:
-        ssh.switch('UNBLOCK', ips)
+        ssh.run('UNBLOCK', ips)
 
-    out = ssh.switch('ROUTE_TABLE') 
+    out = ssh.run('ROUTE_TABLE') 
     return '<pre>' + out + '<pre>' 
 
 
@@ -61,9 +62,34 @@ def show_route():
         return  render_template('route_table.html') 
     else:
         ssh = get_ssh(request)
-        out = ssh.switch('ROUTE_TABLE') 
+        out = ssh.run('ROUTE_TABLE') 
         return '<pre>' + out + '<pre>' 
         
+
+
+@app.route("/limit_speed", methods=['GET', 'POST']) 
+def limit_speed():
+    if request.method == "GET":
+        return  render_template('limit_speed.html') 
+    else:
+        ssh = get_ssh(request)
+        policy = request.form['policy']
+        interface = request.form['interface']
+        out = ssh.run('limit_speed',interface, policy)
+        #out = ssh.run('interface_policy', interface) 
+        return '<pre>' + out + '<pre>' 
+
+
+@app.route("/unlimit_speed", methods=['GET', 'POST']) 
+def unlimit_speed():
+    if request.method == "GET":
+        return  render_template('unlimit_speed.html') 
+    else:
+        ssh = get_ssh(request)
+        interface = request.form['interface']
+        out = ssh.run('undo_limit_speed',interface)
+        #out = ssh.run('interface_policy', interface) 
+        return '<pre>' + out + '<pre>' 
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',  debug=True)
