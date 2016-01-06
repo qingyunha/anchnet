@@ -61,7 +61,6 @@ class BlockCommand(Command):
 
     def execute(self, ips):
         for block_ip in ips:
-            logger.info('block_ip %s' % block_ip)
             out = self._obj.send_command(self.command % block_ip)
 
 class UnblockCommand(Command):
@@ -70,16 +69,25 @@ class UnblockCommand(Command):
 
     def execute(self, ips):
         for block_ip in ips:
-            logger.info('unblock_ip %s' % block_ip)
             out = self._obj.send_command(self.command % block_ip)
 
 class Route_tableCommand(Command):
 
     command = 'display ip routing-table' 
-    def execute(self, *args):
-        logger.info(self.command)
-        out = self._obj.send_command(self.command)
-        return out[1]
+
+    def execute(self):
+        s = self._obj.send_command(self.command)
+        return s 
+
+class Config_includeCommand(Command):
+
+    command = 'display current-configuration | include %s'
+    def execute(self,ip):
+        self.command = self.command % ip
+        s = self._obj.send_command(self.command)
+        return s 
+
+
 
 class Limit_speedCommand(Command):
 
@@ -108,10 +116,8 @@ class Limit_speedCommand(Command):
 
         for cmd in self.commands:
             cmd = cmd.format(**infos)
-            logger.info(cmd)
-            r, s = self._obj.send_command(cmd)
-            if r < 0 :
-                logger.error('execute "%s" failed: %s' % (cmd,s))
+            s = self._obj.send_command(cmd)
+            if s == '' :
                 break
         self._obj.send_command('quit')
         return s
@@ -129,10 +135,8 @@ class Undo_limit_speedCommand(Command):
 
         for cmd in self.commands:
             cmd = cmd.format(**infos)
-            logger.info(cmd)
-            r, s = self._obj.send_command(cmd)
-            if r < 0 :
-                logger.error('execute "%s" failed: %s' % (cmd,s))
+            s = self._obj.send_command(cmd)
+            if s == '' :
                 break
         self._obj.send_command('quit')
         return s
@@ -145,12 +149,8 @@ class Interface_policyCommand(Command):
     def execute(self, interface=None):
        
         cmd = self.command.format(interface)
-        logger.info(cmd)
-        r, s = self._obj.send_command(cmd)
-        if r < 0 :
-            logger.error('execute "%s" failed: %s' % (cmd,s))
-        else:
-            return s
+        s = self._obj.send_command(cmd)
+        return s
 
 
 class sshClient(object):
@@ -207,16 +207,22 @@ class ssh(object):
 
     def send_command(self, com):
         self.ssh.sendline(com)
+        logger.info(com)
         try:
             index = self.ssh.expect([self.ERROR ,self.SPROMPT, self.PROMPT]) 
             if index == 0:
+                logger.error('execute "%s" error' % (com))
                 self.ssh.expect([self.SPROMPT, self.PROMPT]) 
-                return (-1 , self.ssh.before)
+                return ''
             else:
-                return (1, self.ssh.before) 
-        except:
-            return(-1, 'failed')
+                return self.ssh.before
+
+        except pexpect.TIMEOUT:
+            logger.error('execute "%s" timeout' % (com))
+        except pexpect.EOF:
+            logger.error('execute "%s" failed' % (com))
 	
+        return ''
 
     def isalive(self):
         r, s = self.send_command('')
@@ -238,11 +244,14 @@ def get_ssh():
     ssh = sshClient(login_info)
     return ssh
 
-
 if __name__ == "__main__":
+    login_info = ('58.215.139.136', 'hjh_test', 'www.51idc.com')
+    ips = ['58.215.139.12']
     login_info, ips, _ = get_info()
     ssh = sshClient(login_info)
-    #ssh.switch('BLOCK', ips)
+    #print ssh.run('route_table')
+    #print ssh.run('config_include', '192.168.')
+    ssh.switch('BLOCK', ips)
     #ssh.run('unBLOCK', ips)
     print ssh.run('limit_speed', '0/0/2', '15M')
     print ssh.run('interface_policy', '0/0/2')

@@ -30,8 +30,11 @@ def block():
     ssh = get_ssh(request)
     ips = request.form['block_ips'].split()
     ssh.run('BLOCK', ips)
-    out = ssh.run('ROUTE_TABLE') 
-    return '<pre>' + out + '<pre>' 
+    #out = ssh.run('ROUTE_TABLE') 
+    out = []
+    for ip in ips:
+        out.append(ssh.run('config_include',ip))
+    return '<pre>' + '\n'.join(out) + '<pre>' 
 
 
 ## unblock ips
@@ -51,7 +54,11 @@ def unblock():
     else:
         ssh.run('UNBLOCK', ips)
 
-    out = ssh.run('ROUTE_TABLE') 
+    #out = ssh.run('ROUTE_TABLE') 
+    out = []
+    for ip in ips:
+        out.append(ssh.run('config_include',ip))
+    return '<pre>' + '\n'.join(out) + '<pre>' 
     return '<pre>' + out + '<pre>' 
 
 
