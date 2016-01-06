@@ -65,7 +65,7 @@ class BlockCommand(Command):
 
 class UnblockCommand(Command):
 
-    command = 'undo ip route-static %s 255.255.255.255 NULL 0'
+    command = 'undo ip route-static %s 255.255.255.255'
 
     def execute(self, ips):
         for block_ip in ips:
@@ -191,6 +191,7 @@ class ssh(object):
     PROMPT = r'<\S+\>'
     SPROMPT = r'\[\S+\]'
 
+    ssh_line = 'ssh -o StrictHostKeyChecking=no %s@%s'
     def __init__(self, login_info):
         try:
             ip, username, password = login_info
@@ -199,7 +200,7 @@ class ssh(object):
             self.ssh.expect('password')
             self.ssh.sendline(password)
             self.ssh.expect(self.PROMPT)
-            logger.info('login success')
+            logger.info('%s login success' % ip)
             self.send_command('system-view')
         except Exception,e:
             logger.info('login failed')
@@ -225,7 +226,7 @@ class ssh(object):
         return ''
 
     def isalive(self):
-        r, s = self.send_command('')
+        r = self.send_command('')
         return True if r else False
 
 
