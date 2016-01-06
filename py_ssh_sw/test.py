@@ -37,8 +37,8 @@ class WebsshTest(unittest.TestCase):
         
         print s
 
-        assert 'unblock_ip 1.1.1.1' in  s
-        assert 'unblock_ip 2.2.2.2' in  s
+        assert 'undo ip route-static 1.1.1.1' in  s
+        assert 'undo ip route-static 2.2.2.2' in  s
 
 
 

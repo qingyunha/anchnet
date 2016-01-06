@@ -27,7 +27,10 @@ def show_block():
 
 @app.route("/block", methods=['POST'])
 def block():
-    ssh = get_ssh(request)
+    try:
+        ssh = get_ssh(request)
+    except:
+        return 'login failed'
     ips = request.form['block_ips'].split()
     ssh.run('BLOCK', ips)
     #out = ssh.run('ROUTE_TABLE') 
@@ -45,7 +48,10 @@ def show_unblock():
 
 @app.route("/unblock", methods=['POST'])
 def unblock():
-    ssh = get_ssh(request)
+    try:
+        ssh = get_ssh(request)
+    except:
+        return 'login failed'
     ips = request.form['block_ips'].split()
     time = int(request.form['time'])
     if time:
@@ -68,7 +74,10 @@ def show_route():
     if request.method == "GET":
         return  render_template('route_table.html') 
     else:
-        ssh = get_ssh(request)
+        try:
+            ssh = get_ssh(request)
+        except:
+            return 'login failed'
         out = ssh.run('ROUTE_TABLE') 
         return '<pre>' + out + '<pre>' 
         
@@ -79,7 +88,10 @@ def limit_speed():
     if request.method == "GET":
         return  render_template('limit_speed.html') 
     else:
-        ssh = get_ssh(request)
+        try:
+            ssh = get_ssh(request)
+        except:
+            return 'login failed'
         policy = request.form['policy']
         interface = request.form['interface']
         out = ssh.run('limit_speed',interface, policy)
@@ -92,7 +104,10 @@ def unlimit_speed():
     if request.method == "GET":
         return  render_template('unlimit_speed.html') 
     else:
-        ssh = get_ssh(request)
+        try:
+            ssh = get_ssh(request)
+        except:
+            return 'login failed'
         interface = request.form['interface']
         out = ssh.run('undo_limit_speed',interface)
         #out = ssh.run('interface_policy', interface) 
