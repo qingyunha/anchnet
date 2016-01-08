@@ -1,6 +1,7 @@
 import pexpect
 import logging, sys
-import threading, time
+from threading import Timer
+import time
 import json
 
 logger = logging.getLogger('comm_ssh')
@@ -21,12 +22,6 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-def sleep_time(func, delay):
-    def f(*args):
-        time.sleep(delay)
-        return func(*args)
-    return f
-
 
 class Switch(object):
     """The INVOKER class"""
@@ -35,8 +30,7 @@ class Switch(object):
         if 'time' in kwargs:
             delay = kwargs['time']
             print 'sleep %d' % delay
-            cm = sleep_time(command.execute, delay)
-            t = threading.Thread(target=cm, args=args)
+            t = Timer(delay, command.execute, args)
             t.start()
         else:
             return command.execute(*args)
@@ -254,6 +248,6 @@ if __name__ == "__main__":
     #print ssh.run('config_include', '192.168.')
     ssh.switch('BLOCK', ips)
     #ssh.run('unBLOCK', ips)
-    print ssh.run('limit_speed', '0/0/2', '15M')
-    print ssh.run('interface_policy', '0/0/2')
-    #ssh.switch('UNBLOCK', ips, time=9)
+    #print ssh.run('limit_speed', '0/0/2', '15M')
+    #print ssh.run('interface_policy', '0/0/2')
+    ssh.switch('UNBLOCK', ips, time=3)
