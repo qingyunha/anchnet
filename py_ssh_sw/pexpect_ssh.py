@@ -3,6 +3,8 @@ import logging, sys
 import threading, time
 import json
 
+import delay_tasks
+
 logger = logging.getLogger('comm_ssh')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
@@ -32,14 +34,15 @@ class Switch(object):
     """The INVOKER class"""
     @classmethod
     def execute(cls, command, *args, **kwargs):
+        '''
         if 'time' in kwargs:
             delay = kwargs['time']
             print 'sleep %d' % delay
             cm = sleep_time(command.execute, delay)
             t = threading.Thread(target=cm, args=args)
             t.start()
-        else:
-            return command.execute(*args)
+        '''
+        return command.execute(*args, **kwargs)
 
 class Command(object):
     """The COMMAND interface"""
@@ -67,9 +70,13 @@ class UnblockCommand(Command):
 
     command = 'undo ip route-static %s 255.255.255.255'
 
-    def execute(self, ips):
-        for block_ip in ips:
-            out = self._obj.send_command(self.command % block_ip)
+    def execute(self, ips, time=None):
+        if time is not None:
+            login_info = self._obj.login_info
+            delay_task.unblock_ips(login_info, ips, time)
+        else:
+            for block_ip in ips:
+                out = self._obj.send_command(self.command % block_ip)
 
 class Route_tableCommand(Command):
 
@@ -193,6 +200,7 @@ class ssh(object):
 
     ssh_line = 'ssh -o StrictHostKeyChecking=no %s@%s'
     def __init__(self, login_info):
+        self.login_info = login_info
         try:
             ip, username, password = login_info
             self.ssh = pexpect.spawn('ssh -1  %s@%s' % (username, ip))
@@ -252,8 +260,8 @@ if __name__ == "__main__":
     ssh = sshClient(login_info)
     #print ssh.run('route_table')
     #print ssh.run('config_include', '192.168.')
-    ssh.switch('BLOCK', ips)
+    #ssh.switch('BLOCK', ips)
     #ssh.run('unBLOCK', ips)
-    print ssh.run('limit_speed', '0/0/2', '15M')
-    print ssh.run('interface_policy', '0/0/2')
-    #ssh.switch('UNBLOCK', ips, time=9)
+    #print ssh.run('limit_speed', '0/0/2', '15M')
+    #print ssh.run('interface_policy', '0/0/2')
+    ssh.switch('UNBLOCK', ips, time=9)
