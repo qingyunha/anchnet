@@ -2,6 +2,7 @@ import pexpect
 import logging, sys
 import threading, time
 import json
+import xmlrpclib
 
 logger = logging.getLogger('comm_ssh')
 logger.setLevel(logging.DEBUG)
@@ -21,25 +22,21 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-def sleep_time(func, delay):
-    def f(*args):
-        time.sleep(delay)
-        return func(*args)
-    return f
-
+proxy = xmlrpclib.ServerProxy("http://localhost:8000/")
 
 class Switch(object):
     """The INVOKER class"""
     @classmethod
     def execute(cls, command, *args, **kwargs):
+        '''
         if 'time' in kwargs:
             delay = kwargs['time']
             print 'sleep %d' % delay
             cm = sleep_time(command.execute, delay)
             t = threading.Thread(target=cm, args=args)
             t.start()
-        else:
-            return command.execute(*args)
+        '''
+        return command.execute(*args, **kwargs)
 
 class Command(object):
     """The COMMAND interface"""
@@ -67,9 +64,13 @@ class UnblockCommand(Command):
 
     command = 'undo ip route-static %s 255.255.255.255'
 
-    def execute(self, ips):
-        for block_ip in ips:
-            out = self._obj.send_command(self.command % block_ip)
+    def execute(self, ips, time=None):
+        if time is not None:
+            login_info = self._obj.login_info
+            proxy.unblock_ips(login_info, ips, time)
+        else:
+            for block_ip in ips:
+                out = self._obj.send_command(self.command % block_ip)
 
 class Route_tableCommand(Command):
 
@@ -193,6 +194,7 @@ class ssh(object):
 
     ssh_line = 'ssh -o StrictHostKeyChecking=no %s@%s'
     def __init__(self, login_info):
+        self.login_info = login_info
         try:
             ip, username, password = login_info
             self.ssh = pexpect.spawn('ssh -1  %s@%s' % (username, ip))
