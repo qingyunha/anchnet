@@ -30,7 +30,7 @@ class WebsshTest(unittest.TestCase):
 
         r = self.app.post('/unblock', data={'ip': '192.168.106.252', 'username': 'tao', 
                                   'password' : '123', 'block_ips': '1.1.1.1 2.2.2.2', 'time':'1'})
-        time.sleep(3)
+        time.sleep(5)
         
         print 'tail -n 2 comm_ssh.log'
         s = subprocess.check_output('tail -n 2 comm_ssh.log', shell=True)

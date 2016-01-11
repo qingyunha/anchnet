@@ -53,10 +53,10 @@ def unblock():
     except:
         return 'login failed'
     ips = request.form['block_ips'].split()
-    time = int(request.form['time'])
-    if time:
-        ssh.run('UNBLOCK', ips, time=time)
-        return '%d later' % time
+    delay = int(request.form['time'])
+    if delay:
+        ssh.run('UNBLOCK', ips, delay=delay)
+        return '%d later' % delay 
     else:
         ssh.run('UNBLOCK', ips)
 

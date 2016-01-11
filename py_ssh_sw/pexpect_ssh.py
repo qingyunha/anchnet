@@ -3,6 +3,9 @@ import logging, sys
 from threading import Timer
 import time
 import json
+from datetime import datetime, timedelta
+from sched import scheduler 
+
 
 logger = logging.getLogger('comm_ssh')
 logger.setLevel(logging.DEBUG)
@@ -20,20 +23,21 @@ fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(fh)
-logger.addHandler(ch)
+#logger.addHandler(ch)
 
 
 class Switch(object):
     """The INVOKER class"""
     @classmethod
     def execute(cls, command, *args, **kwargs):
+        '''
         if 'time' in kwargs:
             delay = kwargs['time']
             print 'sleep %d' % delay
             t = Timer(delay, command.execute, args)
             t.start()
-        else:
-            return command.execute(*args)
+        '''
+        return command.execute(*args, **kwargs)
 
 class Command(object):
     """The COMMAND interface"""
@@ -57,13 +61,32 @@ class BlockCommand(Command):
         for block_ip in ips:
             out = self._obj.send_command(self.command % block_ip)
 
+
+
+##
+## for job missing, can add a event listener
+## https://apscheduler.readthedocs.org/en/latest/modules/events.html#module-apscheduler.events
+##
+def unblock_ips_task(login_info, ips):
+    ssh = sshClient(login_info)
+    ssh.run('unblock', ips)
+    ssh._ssh.ssh.terminate(force=True)
+
+
 class UnblockCommand(Command):
 
     command = 'undo ip route-static %s 255.255.255.255'
 
-    def execute(self, ips):
-        for block_ip in ips:
-            out = self._obj.send_command(self.command % block_ip)
+    def execute(self, ips, delay=None):
+        if delay is not None:
+            delta = timedelta(seconds=delay)
+            run_date = datetime.now() + delta
+            print "tast run at ", run_date
+            args = (self._obj.login_info, ips)
+            scheduler.add_job(unblock_ips_task, 'date', args, run_date=run_date)
+        else:
+            for block_ip in ips:
+                out = self._obj.send_command(self.command % block_ip)
 
 class Route_tableCommand(Command):
 
@@ -151,7 +174,7 @@ class sshClient(object):
     """The CLIENT class"""
     def __init__(self, login_info):
         ip, username, password = login_info
-        self._ssh = ssh(login_info) 
+        self._ssh = Ssh(login_info) 
         self.commands = globals()
 
     def switch(self, cmd, *args, **kargs):
@@ -179,7 +202,7 @@ class sshClient(object):
 
 
 
-class ssh(object):
+class Ssh(object):
    
     ERROR = 'Error'
     PROMPT = r'<\S+\>'
@@ -187,6 +210,7 @@ class ssh(object):
 
     ssh_line = 'ssh -o StrictHostKeyChecking=no %s@%s'
     def __init__(self, login_info):
+        self.login_info = login_info
         try:
             ip, username, password = login_info
             self.ssh = pexpect.spawn('ssh -1  %s@%s' % (username, ip))
@@ -250,4 +274,5 @@ if __name__ == "__main__":
     #ssh.run('unBLOCK', ips)
     #print ssh.run('limit_speed', '0/0/2', '15M')
     #print ssh.run('interface_policy', '0/0/2')
-    ssh.switch('UNBLOCK', ips, time=3)
+    ssh.switch('UNBLOCK', ips, delay=f)
+    time.sleep(5)
