@@ -23,7 +23,7 @@ fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(fh)
-#logger.addHandler(ch)
+logger.addHandler(ch)
 
 
 class Switch(object):
@@ -274,5 +274,5 @@ if __name__ == "__main__":
     #ssh.run('unBLOCK', ips)
     #print ssh.run('limit_speed', '0/0/2', '15M')
     #print ssh.run('interface_policy', '0/0/2')
-    ssh.switch('UNBLOCK', ips, delay=f)
+    ssh.switch('UNBLOCK', ips, delay=3)
     time.sleep(5)
